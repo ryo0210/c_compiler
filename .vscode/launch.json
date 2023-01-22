@@ -9,7 +9,7 @@
             "type": "lldb",
             "request": "launch",
             "program": "${fileDirname}/${fileBasenameNoExtension}",
-            "args": [" 12 + 34 - 5 "],
+            "args": ["5*(9-6)"],
             "cwd": "${fileDirname}",
             "preLaunchTask": "c_build"
         },
