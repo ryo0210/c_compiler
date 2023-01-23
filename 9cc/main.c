@@ -93,7 +93,7 @@ Token *tokenize() {
             continue;
         }
 
-        error_at(token->str, "トークナイズできません。");
+        error_at(p, "トークナイズできません。");
     }
     new_token(TK_EOF, cur, p);
     return head.next;
@@ -136,8 +136,10 @@ Node *new_num(int val) {
 
 Node *expr();
 Node *mul();
+Node *unary();
 Node *primary();
 
+// expr = mul ("+" mul | "-" mul)*
 Node *expr() {
     Node *node = mul();
 
@@ -151,23 +153,35 @@ Node *expr() {
     }
 }
 
+// mul = unary ("*" unary | "/" unary)*
 Node *mul() {
-    Node *node = primary();
+    Node *node = unary();
 
     for (;;) {
         if (consume('*'))
-            node = new_binary(ND_MUL, node, primary());
+            node = new_binary(ND_MUL, node, unary());
         else if (consume('/'))
-            node = new_binary(ND_DIV, node, primary());
+            node = new_binary(ND_DIV, node, unary());
         else
             return node;
     }
 }
 
+// unary = ("+" | "-")? unary
+//       | primary
+Node *unary() {
+    if (consume('+'))
+        return unary();
+    if (consume('-'))
+        return new_binary(ND_SUB, new_num(0), unary());
+    return primary();
+}
+
+// primary = "(" expr ")" | num
 Node *primary() {
     if (consume('(')) {
         Node *node = expr();
-        expect('(');
+        expect(')');
         return node;
     }
     return new_num(expect_number());
@@ -183,6 +197,7 @@ void gen(Node *node) {
     gen(node->rhs);
 
     printf("  pop rdi\n");
+    printf("  pop rax\n");
 
     switch (node->kind) {
     case ND_ADD:
@@ -203,10 +218,8 @@ void gen(Node *node) {
 }
 
 int main(int argc, char **argv) {
-    if (argc !=2) {
+    if (argc !=2)
         fprintf(stderr, "引数の個数が正しくありません\n");
-        return 1;
-    }
 
     user_input = argv[1];
     token = tokenize();
